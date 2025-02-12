@@ -1,0 +1,13 @@
+site_name: acme-dw
+theme:
+  name: material # readthedocs
+nav:
+  - Introduction: index.md
+  - Installation: install.md
+  - API Reference: api.md
+  - Release Notes: release_notes.md
+extra_css:
+  - stylesheets/extra.css
+
+plugins:
+- mkdocstrings

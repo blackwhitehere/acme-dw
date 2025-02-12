@@ -1,0 +1,35 @@
+name: Release Python Package
+
+on:
+  push:
+    tags:
+      - 'release/*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    environment: release # This environment can publish to PyPI, needs to be setup in the repo settings
+    permissions: # needed to access the PyPI token: https://docs.astral.sh/uv/guides/publish/#publishing-your-package
+      contents: 'read'
+      id-token: write
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+
+    - name: Install uv
+      run: |
+        python -m pip install --upgrade pip
+        pip install uv
+
+    - name: Build package
+      run: |
+        uv build
+
+    - name: Publish package
+      run: |
+        uv publish
