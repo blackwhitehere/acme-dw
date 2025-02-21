@@ -68,6 +68,7 @@ site/
 
 # PyCharm
 .idea/
+*.code-workspace
 
 # folder metadata
 .DS_Store
