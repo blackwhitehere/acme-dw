@@ -3,12 +3,12 @@ name: Release Python Package
 on:
   push:
     tags:
-      - 'release/*'
+      - 'v*'
 
 jobs:
   release:
     runs-on: ubuntu-latest
-    environment: release # This environment can publish to PyPI, needs to be setup in the repo settings
+    environment: release-pypi # This environment can publish to PyPI, needs to be setup in the repo settings
     permissions: # needed to access the PyPI token: https://docs.astral.sh/uv/guides/publish/#publishing-your-package
       contents: 'read'
       id-token: write

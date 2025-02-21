@@ -29,7 +29,7 @@ class DatasetMetadata:
 
     @classmethod
     def from_dict(cls, data: dict):
-        """Create a DWMetadata instance from a dictionary"""
+        """Create a DatasetMetadata instance from a dictionary"""
         return cls(**data)
 
 

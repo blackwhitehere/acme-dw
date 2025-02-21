@@ -8,7 +8,8 @@ version = "0.0.1"
 description = "Simple data warehouse using S3"
 readme = "README.md"
 classifiers = [ "Programming Language :: Python :: 3.12", ]
-dependencies = [ "python-dotenv", "pandas", "acme_s3", "pyarrow" ]
+requires-python = ">=3.9"
+dependencies = [ "python-dotenv", "pandas", "acme_s3>=0.0.3", "pyarrow" ]
 
 [[project.authors]]
 email = "guner.stan@gmail.com"
