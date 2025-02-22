@@ -4,12 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "acme_dw"
-version = "0.0.1"
+version = "0.0.2"
 description = "Simple data warehouse using S3"
 readme = "README.md"
 classifiers = [ "Programming Language :: Python :: 3.12", ]
 requires-python = ">=3.9"
-dependencies = [ "python-dotenv", "pandas", "acme_s3>=0.0.3", "pyarrow" ]
+dependencies = [ "python-dotenv", "pandas", "acme_s3>=0.0.3", "pyarrow", "polars" ]
 
 [[project.authors]]
 email = "guner.stan@gmail.com"

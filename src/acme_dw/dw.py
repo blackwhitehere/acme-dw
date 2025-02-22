@@ -4,7 +4,7 @@ import tempfile
 from pathlib import Path
 
 import pandas as pd
-
+import polars as pl
 from acme_s3 import S3Client
 
 
@@ -17,7 +17,9 @@ class DatasetMetadata:
     Unique identifier of a process that populates the dataset e.g. `fetch_yahoo_data`
     Any number of partitions specific to a dataset, e.g. `minute, AAPL, 2025`
     Name of file object: e.g. `20250124`
-    Type of data stored in write object: e.g. `parquet`"""
+    Type of data stored in write object: e.g. `parquet`
+    Type of DataFrame to read: e.g. `pandas` or `polars`
+    """
 
     source: str
     name: str
@@ -26,6 +28,7 @@ class DatasetMetadata:
     partitions: list[str]
     file_name: str
     file_type: str
+    df_type: str = "pandas"
 
     @classmethod
     def from_dict(cls, data: dict):
@@ -52,7 +55,7 @@ class DW:
 
     def write_df(
         self,
-        df: pd.DataFrame,
+        df: Union[pd.DataFrame, pl.DataFrame],
         metadata: Union[DatasetMetadata, dict],
         to_parquet_kwargs: dict = None,
         s3_kwargs: dict = None,
@@ -60,7 +63,7 @@ class DW:
         """Write a pandas DataFrame to S3 as a parquet file with metadata
 
         Args:
-            df: Pandas DataFrame to write
+            df: Pandas DataFrame or Polars DataFrame to write
             metadata: DatasetMetadata object or dict containing metadata
             to_parquet_kwargs: Optional kwargs to pass to pandas to_parquet()
             s3_kwargs: Optional kwargs to pass to S3 upload
@@ -98,6 +101,13 @@ class DW:
             to_parquet_kwargs = {}
         if s3_kwargs is None:
             s3_kwargs = {}
+        
+        if isinstance(df, pl.DataFrame):
+            to_parquet_func = df.write_parquet
+        elif isinstance(df, pd.DataFrame):
+            to_parquet_func = df.to_parquet
+        else:
+            raise ValueError(f"Unsupported DataFrame type: {type(df)}")
 
         # Convert dict to DatasetMetadata if needed
         if isinstance(metadata, dict):
@@ -108,13 +118,13 @@ class DW:
 
         # Create a temporary file and write DataFrame as parquet
         with tempfile.NamedTemporaryFile(suffix=".parquet") as tmp:
-            df.to_parquet(tmp.name, **to_parquet_kwargs)
+            to_parquet_func(tmp.name, **to_parquet_kwargs)
             # Upload the temporary file to S3
             self.s3_client.upload_file(tmp.name, s3_key, **s3_kwargs)
 
     def write_many_dfs(
         self,
-        df_list: list[pd.DataFrame],
+        df_list: list[Union[pd.DataFrame, pl.DataFrame]],
         metadata_list: List[Union[DatasetMetadata, dict]],
         to_parquet_kwargs: dict = None,
         s3_kwargs: dict = None,
@@ -122,7 +132,7 @@ class DW:
         """Write multiple pandas DataFrames to S3 as parquet files with metadata
 
         Args:
-            df_list: List of pandas DataFrames to write
+            df_list: List of pandas DataFrames or Polars DataFrames to write
             metadata_list: List of DatasetMetadata objects or dicts containing metadata
             to_parquet_kwargs: Optional kwargs to pass to pandas to_parquet()
             s3_kwargs: Optional kwargs to pass to S3 upload
@@ -159,13 +169,20 @@ class DW:
             to_parquet_kwargs = {}
         if s3_kwargs is None:
             s3_kwargs = {}
+        
+        if isinstance(df_list[0], pl.DataFrame):
+            to_parquet_func = df_list[0].write_parquet
+        elif isinstance(df_list[0], pd.DataFrame):
+            to_parquet_func = df_list[0].to_parquet
+        else:
+            raise ValueError(f"Unsupported DataFrame type: {type(df_list[0])}")
 
         # Create temporary files and build mapping
         file_mappings = {}
         with tempfile.TemporaryDirectory() as tmpdir:
             for i, (df, metadata) in enumerate(zip(df_list, metadata_list)):
                 tmp_path = Path(tmpdir) / f"file_{i}.parquet"
-                df.to_parquet(tmp_path, **to_parquet_kwargs)
+                to_parquet_func(tmp_path, **to_parquet_kwargs)
                 # Convert dict to DatasetMetadata if needed
                 if isinstance(metadata, dict):
                     metadata = DatasetMetadata.from_dict(metadata)
@@ -180,7 +197,7 @@ class DW:
         metadata: Union[DatasetMetadata, dict],
         read_parquet_kwargs: dict = None,
         s3_kwargs: dict = None,
-    ) -> pd.DataFrame:
+    ) -> Union[pd.DataFrame, pl.DataFrame]:
         """Read a single DataFrame from the data warehouse
 
         This method downloads a parquet file from S3 based on the provided metadata and loads it into a pandas DataFrame.
@@ -192,7 +209,7 @@ class DW:
             s3_kwargs: Optional dictionary of keyword arguments to pass to S3 download operation
 
         Returns:
-            pandas.DataFrame: The DataFrame loaded from the parquet file
+            pandas.DataFrame or polars.DataFrame: The DataFrame loaded from the parquet file
 
         Example:
             ```python
@@ -213,6 +230,13 @@ class DW:
         if s3_kwargs is None:
             s3_kwargs = {}
 
+        if metadata.df_type == "pandas":
+            read_parquet_func = pd.read_parquet
+        elif metadata.df_type == "polars":
+            read_parquet_func = pl.read_parquet
+        else:
+            raise ValueError(f"Unsupported DataFrame type: {metadata.df_type}")
+
         # Convert dict to DatasetMetadata if needed
         if isinstance(metadata, dict):
             metadata = DatasetMetadata.from_dict(metadata)
@@ -225,7 +249,7 @@ class DW:
             # Download the file from S3
             self.s3_client.download_file(s3_key, tmp.name, **s3_kwargs)
             # Read the parquet file into a DataFrame
-            return pd.read_parquet(tmp.name, **read_parquet_kwargs)
+            return read_parquet_func(tmp.name, **read_parquet_kwargs)
 
 if __name__ == "__main__":
     import os
