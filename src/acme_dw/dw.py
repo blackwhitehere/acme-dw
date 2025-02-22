@@ -37,7 +37,9 @@ class DatasetMetadata:
 
 
 class DW:
-    def __init__(self, bucket_name: str, path_prefix: str = "dw", s3_client_kwargs: dict = None):
+    def __init__(
+        self, bucket_name: str, path_prefix: str = "dw", s3_client_kwargs: dict = None
+    ):
         """Initialize DW client for managing data warehouse on S3
 
         Args:
@@ -71,11 +73,11 @@ class DW:
         Example:
             ```python
             dw = DW('my-bucket')
-            
+
             # Write with DatasetMetadata object
             metadata = DatasetMetadata(
                 source='yahoo_finance',
-                name='price_history', 
+                name='price_history',
                 version='v1',
                 process_id='fetch_yahoo_data',
                 partitions=['minute', 'AAPL', '2025'],
@@ -88,7 +90,7 @@ class DW:
             metadata_dict = {
                 'source': 'yahoo_finance',
                 'name': 'price_history',
-                'version': 'v1', 
+                'version': 'v1',
                 'process_id': 'fetch_yahoo_data',
                 'partitions': ['minute', 'AAPL', '2025'],
                 'file_name': '20250124',
@@ -101,7 +103,7 @@ class DW:
             to_parquet_kwargs = {}
         if s3_kwargs is None:
             s3_kwargs = {}
-        
+
         if isinstance(df, pl.DataFrame):
             to_parquet_func = df.write_parquet
         elif isinstance(df, pd.DataFrame):
@@ -144,7 +146,7 @@ class DW:
             metadata_list = [
                 {
                     'source': 'yahoo_finance',
-                    'name': 'price_history', 
+                    'name': 'price_history',
                     'version': 'v1',
                     'process_id': 'fetch_yahoo_data',
                     'partitions': ['minute', 'AAPL', '2025'],
@@ -152,10 +154,10 @@ class DW:
                     'file_type': 'parquet'
                 },
                 {
-                    'source': 'yahoo_finance', 
+                    'source': 'yahoo_finance',
                     'name': 'price_history',
                     'version': 'v1',
-                    'process_id': 'fetch_yahoo_data', 
+                    'process_id': 'fetch_yahoo_data',
                     'partitions': ['minute', 'MSFT', '2025'],
                     'file_name': '20250124',
                     'file_type': 'parquet'
@@ -163,13 +165,13 @@ class DW:
             ]
             dw.write_many_dfs([df1, df2], metadata_list)
             ```
-            
+
         """
         if to_parquet_kwargs is None:
             to_parquet_kwargs = {}
         if s3_kwargs is None:
             s3_kwargs = {}
-        
+
         if isinstance(df_list[0], pl.DataFrame):
             to_parquet_func = df_list[0].write_parquet
         elif isinstance(df_list[0], pd.DataFrame):
@@ -216,7 +218,7 @@ class DW:
             metadata = {
                 'source': 'yahoo_finance',
                 'name': 'price_history',
-                'version': 'v1', 
+                'version': 'v1',
                 'process_id': 'fetch_yahoo_data',
                 'partitions': ['minute', 'AAPL', '2025'],
                 'file_name': '20250124',
@@ -251,18 +253,71 @@ class DW:
             # Read the parquet file into a DataFrame
             return read_parquet_func(tmp.name, **read_parquet_kwargs)
 
+    def read_dataset(
+        self,
+        s3_prefix: str,
+        read_parquet_kwargs: dict = None,
+        s3_kwargs: dict = None,
+        df_type: str = "pandas",
+    ) -> Union[pd.DataFrame, pl.DataFrame]:
+        """Read a dataset from S3 parquet files into a DataFrame.
+        This function downloads parquet files from S3 to a temporary directory and reads them
+        into either a pandas or polars DataFrame.
+        Args:
+            s3_prefix (str): S3 prefix path to the dataset files
+            read_parquet_kwargs (dict, optional): Additional keyword arguments to pass to the parquet reader function.
+                Defaults to None.
+            s3_kwargs (dict, optional): Additional keyword arguments to pass to S3 download operations.
+                Defaults to None.
+            df_type (str, optional): Type of DataFrame to return - either "pandas" or "polars".
+                Defaults to "pandas".
+        Returns:
+            Union[pd.DataFrame, pl.DataFrame]: A DataFrame containing the dataset, either pandas or polars
+                depending on df_type parameter.
+        Raises:
+            ValueError: If df_type is not "pandas" or "polars".
+        Example:
+            >>> dw.read_dataset('mydata/', df_type='pandas')  # Returns pandas DataFrame
+            >>> dw.read_dataset('mydata/', df_type='polars')  # Returns polars DataFrame
+        """
+        if read_parquet_kwargs is None:
+            read_parquet_kwargs = {}
+        if s3_kwargs is None:
+            s3_kwargs = {}
+
+        if df_type == "pandas":
+            read_parquet_func = pd.read_parquet
+        elif df_type == "polars":
+            read_parquet_func = pl.read_parquet
+        else:
+            raise ValueError(f"Unsupported DataFrame type: {df_type}")
+
+        # Get the S3 keys for this dataset
+        s3_keys = self.s3_client.list_objects(s3_prefix)
+
+        # Create a temporary directory to download to and read from
+        with tempfile.TemporaryDirectory() as tmpdir:
+            file_mappings = {
+                s3_key: Path(tmpdir) / f"{i}.parquet"
+                for i, s3_key in enumerate(s3_keys)
+            }
+            self.s3_client.download_files(file_mappings, **s3_kwargs)
+            return read_parquet_func(tmpdir, **read_parquet_kwargs)
+
+
 if __name__ == "__main__":
     import os
-    dw = DW(os.environ['TEST_AWS_BUCKET_NAME'], path_prefix='dw-test')
-    df = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]})
+
+    dw = DW(os.environ["TEST_AWS_BUCKET_NAME"], path_prefix="dw-test")
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
     metadata = DatasetMetadata(
-        source='sample_source',
-        name='sample_dataset',
-        version='v1',
-        process_id='sample_process',
-        partitions=['partition1', 'partition2'],
-        file_name='sample_file',
-        file_type='parquet'
+        source="sample_source",
+        name="sample_dataset",
+        version="v1",
+        process_id="sample_process",
+        partitions=["partition1", "partition2"],
+        file_name="sample_file",
+        file_type="parquet",
     )
     print(f"Uploading df to S3 with metadata:\n{metadata}")
     print(df)
