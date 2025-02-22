@@ -35,6 +35,16 @@ class DatasetMetadata:
         """Create a DatasetMetadata instance from a dictionary"""
         return cls(**data)
 
+@dataclass
+class DatasetPrefix:
+    source: str
+    name: str
+    version: str
+    process_id: str
+    partitions: list[str] # can be a subset of partitions in DatasetMetadata
+    file_type: str = "parquet"
+    df_type: str = "pandas"
+
 
 class DW:
     def __init__(
@@ -253,24 +263,24 @@ class DW:
             # Read the parquet file into a DataFrame
             return read_parquet_func(tmp.name, **read_parquet_kwargs)
 
+    def _get_s3_key_prefix(self, dataset_prefix: DatasetPrefix) -> str:
+        return f"{self.path_prefix}/{dataset_prefix.source}/{dataset_prefix.name}/{dataset_prefix.version}/{dataset_prefix.process_id}/{'/'.join(dataset_prefix.partitions)}/"
+    
     def read_dataset(
         self,
-        s3_prefix: str,
+        dataset_prefix: DatasetPrefix,
         read_parquet_kwargs: dict = None,
         s3_kwargs: dict = None,
-        df_type: str = "pandas",
     ) -> Union[pd.DataFrame, pl.DataFrame]:
         """Read a dataset from S3 parquet files into a DataFrame.
         This function downloads parquet files from S3 to a temporary directory and reads them
         into either a pandas or polars DataFrame.
         Args:
-            s3_prefix (str): S3 prefix path to the dataset files
+            dataset_prefix (DatasetPrefix): DatasetPrefix object containing metadata about the dataset to read.
             read_parquet_kwargs (dict, optional): Additional keyword arguments to pass to the parquet reader function.
                 Defaults to None.
             s3_kwargs (dict, optional): Additional keyword arguments to pass to S3 download operations.
                 Defaults to None.
-            df_type (str, optional): Type of DataFrame to return - either "pandas" or "polars".
-                Defaults to "pandas".
         Returns:
             Union[pd.DataFrame, pl.DataFrame]: A DataFrame containing the dataset, either pandas or polars
                 depending on df_type parameter.
@@ -285,15 +295,17 @@ class DW:
         if s3_kwargs is None:
             s3_kwargs = {}
 
-        if df_type == "pandas":
+        if dataset_prefix.df_type == "pandas":
             read_parquet_func = pd.read_parquet
-        elif df_type == "polars":
+        elif dataset_prefix.df_type == "polars":
             read_parquet_func = pl.read_parquet
         else:
-            raise ValueError(f"Unsupported DataFrame type: {df_type}")
+            raise ValueError(f"Unsupported DataFrame type: {dataset_prefix.df_type}")
 
         # Get the S3 keys for this dataset
+        s3_prefix = self._get_s3_key_prefix(dataset_prefix)
         s3_keys = self.s3_client.list_objects(s3_prefix)
+        s3_keys = [key for key in s3_keys if key.endswith(dataset_prefix.file_type)]
 
         # Create a temporary directory to download to and read from
         with tempfile.TemporaryDirectory() as tmpdir:
