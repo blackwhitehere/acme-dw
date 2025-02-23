@@ -255,6 +255,8 @@ class DW:
 
         # Get the S3 key for this dataset
         s3_key = self._get_s3_key(metadata)
+        if not self.s3_client.path_exists(s3_key):
+            raise FileNotFoundError(f"File not found: {s3_key}")
 
         # Create a temporary file to download to
         with tempfile.NamedTemporaryFile(suffix=".parquet") as tmp:
@@ -264,7 +266,7 @@ class DW:
             return read_parquet_func(tmp.name, **read_parquet_kwargs)
 
     def _get_s3_key_prefix(self, dataset_prefix: DatasetPrefix) -> str:
-        return f"{self.path_prefix}/{dataset_prefix.source}/{dataset_prefix.name}/{dataset_prefix.version}/{dataset_prefix.process_id}/{'/'.join(dataset_prefix.partitions)}/"
+        return f"{self.path_prefix}/{dataset_prefix.source}/{dataset_prefix.name}/{dataset_prefix.version}/{dataset_prefix.process_id}/{'/'.join(dataset_prefix.partitions)}"
     
     def read_dataset(
         self,
@@ -272,23 +274,35 @@ class DW:
         read_parquet_kwargs: dict = None,
         s3_kwargs: dict = None,
     ) -> Union[pd.DataFrame, pl.DataFrame]:
-        """Read a dataset from S3 parquet files into a DataFrame.
-        This function downloads parquet files from S3 to a temporary directory and reads them
-        into either a pandas or polars DataFrame.
+        """Read a dataset from multiple S3 parquet files under a prefix into a DataFrame.
+
         Args:
             dataset_prefix (DatasetPrefix): DatasetPrefix object containing metadata about the dataset to read.
-            read_parquet_kwargs (dict, optional): Additional keyword arguments to pass to the parquet reader function.
-                Defaults to None.
+            read_parquet_kwargs (dict, optional): Additional keyword arguments to pass to the parquet reader function. 
+            Defaults to None.
             s3_kwargs (dict, optional): Additional keyword arguments to pass to S3 download operations.
-                Defaults to None.
+            Defaults to None.
+
         Returns:
             Union[pd.DataFrame, pl.DataFrame]: A DataFrame containing the dataset, either pandas or polars
-                depending on df_type parameter.
+            depending on df_type parameter.
+
         Raises:
             ValueError: If df_type is not "pandas" or "polars".
+            FileNotFoundError: If no files are found with the specified prefix in S3.
+            botocore.exceptions.ClientError: If there are permission issues accessing the S3 bucket.
+
         Example:
-            >>> dw.read_dataset('mydata/', df_type='pandas')  # Returns pandas DataFrame
-            >>> dw.read_dataset('mydata/', df_type='polars')  # Returns polars DataFrame
+            >>> prefix = DatasetPrefix(
+            ...     source='yahoo_finance',
+            ...     name='price_history', 
+            ...     version='v1',
+            ...     process_id='fetch_yahoo_data',
+            ...     partitions=['minute', 'AAPL', '2025'],
+            ...     file_type='parquet',
+            ...     df_type='pandas'
+            ... )
+            >>> df = dw.read_dataset(prefix)  # Returns pandas DataFrame
         """
         if read_parquet_kwargs is None:
             read_parquet_kwargs = {}
@@ -307,11 +321,14 @@ class DW:
         s3_keys = self.s3_client.list_objects(s3_prefix)
         s3_keys = [key for key in s3_keys if key.endswith(dataset_prefix.file_type)]
 
+        if len(s3_keys) == 0:
+            raise FileNotFoundError(f"No files found with prefix: {s3_prefix}")
+        
         # Create a temporary directory to download to and read from
         with tempfile.TemporaryDirectory() as tmpdir:
             file_mappings = {
-                s3_key: Path(tmpdir) / f"{i}.parquet"
-                for i, s3_key in enumerate(s3_keys)
+                s3_key: Path(tmpdir) / Path(s3_key.replace(s3_prefix+"/", ""))
+                for s3_key in s3_keys
             }
             self.s3_client.download_files(file_mappings, **s3_kwargs)
             return read_parquet_func(tmpdir, **read_parquet_kwargs)
