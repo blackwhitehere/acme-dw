@@ -354,3 +354,16 @@ if __name__ == "__main__":
     print(f"Downloading df from S3 with metadata:\n{metadata}")
     df_read = dw.read_df(metadata)
     print(df_read)
+
+    prefix = DatasetPrefix(
+        source="sample_source",
+        name="sample_dataset",
+        version="v1",
+        process_id="sample_process",
+        partitions=["partition1"],
+        file_type="parquet",
+        df_type="pandas",
+    )
+    print(f"Reading dataset from S3 with prefix:\n{prefix}")
+    df = dw.read_dataset(prefix)
+    print(df)
