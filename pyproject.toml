@@ -14,7 +14,7 @@ dependencies = [
     "pandas",
     "acme_s3>=0.0.5",
     "pyarrow",
-    "polars-lts-cpu",
+    "polars",
 ]
 
 [[project.authors]]
