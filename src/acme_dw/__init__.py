@@ -1,7 +1,7 @@
 from ._main import (
     main
 )
-from .dw import DW, DatasetMetadata
+from .dw import DW, DatasetMetadata, DatasetPrefix
 
 import logging
 from dotenv import load_dotenv

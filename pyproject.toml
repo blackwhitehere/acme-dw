@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "acme_dw"
-version = "0.0.2"
+version = "0.0.3"
 description = "Simple data warehouse using S3"
 readme = "README.md"
 classifiers = ["Programming Language :: Python :: 3.12"]
