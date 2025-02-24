@@ -12,7 +12,7 @@ requires-python = ">=3.9"
 dependencies = [
     "python-dotenv",
     "pandas",
-    "acme_s3>=0.0.6",
+    "acme_s3>=0.0.5",
     "pyarrow",
     "polars-lts-cpu",
 ]
