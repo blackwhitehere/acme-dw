@@ -11,9 +11,10 @@ We can see how S3 can be easily utilized as a data lake with little extra functi
 
 # Features
 
-* Provides read/wrie on schema-less `pd.DataFrame`
-* Saves `pd.DataFrame` using parquet format for fast read performance.
+* Provides read/wrie on schema-less `pd.DataFrame/pl.DataFrame`
+* Saves `pd.DataFrame/pl.DataFrame` using parquet format for fast read performance.
 * Standardizes metadata associated with each dataset
+* Support for reading datasets spread over multiple `parquet` files.
 
 # Dev environment
 
