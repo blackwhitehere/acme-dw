@@ -14,7 +14,7 @@ We can see how S3 can be easily utilized as a data lake with little extra functi
 * Provides read/wrie on schema-less `pd.DataFrame/pl.DataFrame`
 * Saves `pd.DataFrame/pl.DataFrame` using parquet format for fast read performance.
 * Standardizes metadata associated with each dataset
-* Support for reading datasets spread over multiple `parquet` files.
+* Support for parquet datasets (datasets spread over multiple `parquet` files).
 
 # Dev environment
 
@@ -37,7 +37,7 @@ If you are using VSCode, set to use this env via `Python: Select Interpreter` co
 
     from acme_dw import DW, DatasetMetadata
 
-    dw = DW('my-bucket')
+    dw = DW()
             
     # Write with DatasetMetadata object
     metadata = DatasetMetadata(

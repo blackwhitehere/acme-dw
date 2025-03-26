@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Union, List
+from typing import Union, List, Optional
 import tempfile
 from pathlib import Path
 
@@ -48,7 +48,7 @@ class DatasetPrefix:
 
 class DW:
     def __init__(
-        self, bucket_name: str, path_prefix: str = "dw", s3_client_kwargs: dict = None
+        self, bucket_name: Optional[str], path_prefix: str = "dw", s3_client_kwargs: dict = None
     ):
         """Initialize DW client for managing data warehouse on S3
 
@@ -59,6 +59,8 @@ class DW:
         """
         if s3_client_kwargs is None:
             s3_client_kwargs = {}
+        if bucket_name is None:
+            bucket_name = os.environ["DW_AWS_BUCKET_NAME"]
         self.s3_client = S3Client(bucket_name, **s3_client_kwargs)
         self.path_prefix = path_prefix
 
