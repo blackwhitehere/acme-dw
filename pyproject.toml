@@ -4,15 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "acme_dw"
-version = "0.0.5"
-description = "Simple data warehouse using S3"
+version = "0.0.6"
+description = "Simple data warehouse with pluggable storage (local filesystem or S3)"
 readme = "README.md"
 classifiers = ["Programming Language :: Python :: 3.12"]
 requires-python = ">=3.9"
 dependencies = [
     "python-dotenv",
     "pandas",
-    "acme_s3>=0.0.5",
     "pyarrow",
     "polars",
 ]
@@ -28,13 +27,17 @@ homepage = "https://example.com"
 repository = "https://example.com"
 
 [project.optional-dependencies]
+s3 = [
+    "acme_s3>=0.0.5",
+]
 dev = [
-    "pytest",               # for testing
-    "uv",                   # for venv
-    "mkdocs",               # for documentation
-    "mkdocs-material",      # theme for mkdocs
-    "mkdocstrings[python]", # mkdocs plugin to generate API docs from sources
-    "jupyterlab",           # for jupyter notebooks
+    "pytest",
+    "uv",
+    "mkdocs",
+    "mkdocs-material",
+    "mkdocstrings[python]",
+    "jupyterlab",
+    "acme_s3>=0.0.5",
 ]
 
 [tool.setuptools]
@@ -42,4 +45,3 @@ package-dir = { "" = "src" }
 packages = ["acme_dw"]
 # https://github.com/astral-sh/uv/issues/9513#issuecomment-2519527822
 license-files = []
-# [tool.setuptools.package-data]

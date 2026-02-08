@@ -1,7 +1,6 @@
-from ._main import (
-    main
-)
+from ._main import main
 from .dw import DW, DatasetMetadata, DatasetPrefix
+from .backends import StorageBackend, LocalBackend
 
 import logging
 from dotenv import load_dotenv

@@ -10,10 +10,9 @@ resolution-markers = [
 
 [[package]]
 name = "acme-dw"
-version = "0.0.4"
+version = "0.0.6"
 source = { editable = "." }
 dependencies = [
-    { name = "acme-s3" },
     { name = "pandas" },
     { name = "polars" },
     { name = "pyarrow" },
@@ -22,6 +21,7 @@ dependencies = [
 
 [package.optional-dependencies]
 dev = [
+    { name = "acme-s3" },
     { name = "jupyterlab" },
     { name = "mkdocs" },
     { name = "mkdocs-material" },
@@ -29,10 +29,14 @@ dev = [
     { name = "pytest" },
     { name = "uv" },
 ]
+s3 = [
+    { name = "acme-s3" },
+]
 
 [package.metadata]
 requires-dist = [
-    { name = "acme-s3", specifier = ">=0.0.5" },
+    { name = "acme-s3", marker = "extra == 'dev'", specifier = ">=0.0.5" },
+    { name = "acme-s3", marker = "extra == 's3'", specifier = ">=0.0.5" },
     { name = "jupyterlab", marker = "extra == 'dev'" },
     { name = "mkdocs", marker = "extra == 'dev'" },
     { name = "mkdocs-material", marker = "extra == 'dev'" },
@@ -44,7 +48,7 @@ requires-dist = [
     { name = "python-dotenv" },
     { name = "uv", marker = "extra == 'dev'" },
 ]
-provides-extras = ["dev"]
+provides-extras = ["s3", "dev"]
 
 [[package]]
 name = "acme-s3"
