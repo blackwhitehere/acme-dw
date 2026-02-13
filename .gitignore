@@ -75,3 +75,6 @@ site/
 
 # todo file for personal notes
 TODO.md
+# DuckDB
+*.duckdb
+*.duckdb.wal
